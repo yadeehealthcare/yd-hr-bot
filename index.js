@@ -65,27 +65,11 @@ function createMainMenu(name) {
         type: 'box', layout: 'vertical', paddingAll: '20px',
         backgroundColor: '#003d99',
         contents: [
-          {
-            type: 'box', layout: 'horizontal', alignItems: 'center', spacing: 'md',
-            contents: [
-              {
-                type: 'box', layout: 'vertical', width: '44px', height: '44px',
-                cornerRadius: '10px', backgroundColor: '#0057cc',
-                justifyContent: 'center', alignItems: 'center',
-                contents: [{ type: 'text', text: 'YD', size: 'sm', weight: 'bold', color: '#ffffff', align: 'center' }]
-              },
-              {
-                type: 'box', layout: 'vertical',
-                contents: [
-                  { type: 'text', text: 'YD HR', weight: 'bold', size: 'xl', color: '#ffffff' },
-                  { type: 'text', text: 'ระบบบันทึกเวลาทำงาน', size: 'xs', color: '#99bbff' }
-                ]
-              }
-            ]
-          },
-          { type: 'separator', margin: '14px', color: '#0057cc' },
-          { type: 'text', text: '\uD83D\uDC64  สวัสดี, ' + name, size: 'sm', color: '#cce0ff', margin: '10px' },
-          { type: 'text', text: '\uD83D\uDCC5  ' + getDateLabelBKK(), size: 'xs', color: '#99bbff', wrap: true }
+          { type: 'text', text: 'YD HR', weight: 'bold', size: 'xl', color: '#ffffff' },
+          { type: 'text', text: 'ระบบบันทึกเวลาทำงาน', size: 'xs', color: '#99bbff' },
+          { type: 'separator', margin: '12px', color: '#0057cc' },
+          { type: 'text', text: '\uD83D\uDC64 ' + name, size: 'sm', color: '#cce0ff', margin: '10px' },
+          { type: 'text', text: '\uD83D\uDCC5 ' + getDateLabelBKK(), size: 'xs', color: '#99bbff', wrap: true }
         ]
       },
       body: {
@@ -152,7 +136,7 @@ function createMainMenu(name) {
   };
 }
 
-// เลือกสาขา
+// เลือกสาขา — ใช้ button แทน box ที่มี action เพื่อหลีกเลี่ยง color error
 function createBranchSelector(action) {
   const isIn = action === 'in';
   return {
@@ -163,66 +147,34 @@ function createBranchSelector(action) {
       header: {
         type: 'box', layout: 'vertical', paddingAll: '16px',
         backgroundColor: isIn ? '#003d99' : '#b91c1c',
-        contents: [{
-          type: 'box', layout: 'horizontal', alignItems: 'center', spacing: 'sm',
-          contents: [
-            { type: 'text', text: isIn ? '\u2705' : '\uD83D\uDEAA', size: 'xl' },
-            { type: 'box', layout: 'vertical',
-              contents: [
-                { type: 'text', text: (isIn ? 'เข้างาน' : 'ออกงาน') + ' \u2014 เลือกสาขา', weight: 'bold', color: '#ffffff', size: 'md' },
-                { type: 'text', text: 'กรุณาเลือกสาขาที่ทำงานวันนี้', size: 'xs', color: '#ccddff' }
-              ]
-            }
-          ]
-        }]
+        contents: [
+          { type: 'text', text: (isIn ? '\u2705 เข้างาน' : '\uD83D\uDEAA ออกงาน') + ' \u2014 เลือกสาขา', weight: 'bold', color: '#ffffff', size: 'md' },
+          { type: 'text', text: 'กรุณาเลือกสาขาที่ทำงานวันนี้', size: 'xs', color: '#ccddff', margin: '4px' }
+        ]
       },
       body: {
         type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px',
         contents: [
           {
-            type: 'box', layout: 'horizontal', alignItems: 'center',
-            backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '14px',
-            action: { type: 'message', label: 'สาขา 1', text: action + '_branch_1' },
-            contents: [
-              { type: 'text', text: '\uD83C\uDFE5', size: 'lg', flex: 0 },
-              { type: 'box', layout: 'vertical', margin: 'sm', flex: 1,
-                contents: [
-                  { type: 'text', text: 'สาขา 1', weight: 'bold', color: '#1e3a8a', size: 'md' },
-                  { type: 'text', text: '08:00 \u2013 22:00 น.', size: 'xs', color: '#555' }
-                ]
-              },
-              { type: 'text', text: '\u276F', color: '#003d99', size: 'lg' }
-            ]
+            type: 'button',
+            action: { type: 'message', label: '\uD83C\uDFE5  สาขา 1  |  08:00 - 22:00 น.', text: action + '_branch_1' },
+            style: 'primary',
+            color: '#003d99',
+            height: 'sm'
           },
           {
-            type: 'box', layout: 'horizontal', alignItems: 'center',
-            backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '14px',
-            action: { type: 'message', label: 'สาขา 2', text: action + '_branch_2' },
-            contents: [
-              { type: 'text', text: '\uD83C\uDFE5', size: 'lg', flex: 0 },
-              { type: 'box', layout: 'vertical', margin: 'sm', flex: 1,
-                contents: [
-                  { type: 'text', text: 'สาขา 2', weight: 'bold', color: '#1e3a8a', size: 'md' },
-                  { type: 'text', text: '08:00 \u2013 20:00 น.', size: 'xs', color: '#555' }
-                ]
-              },
-              { type: 'text', text: '\u276F', color: '#003d99', size: 'lg' }
-            ]
+            type: 'button',
+            action: { type: 'message', label: '\uD83C\uDFE5  สาขา 2  |  08:00 - 20:00 น.', text: action + '_branch_2' },
+            style: 'primary',
+            color: '#0057cc',
+            height: 'sm'
           },
           {
-            type: 'box', layout: 'horizontal', alignItems: 'center',
-            backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '14px',
-            action: { type: 'message', label: 'สาขา 3', text: action + '_branch_3' },
-            contents: [
-              { type: 'text', text: '\uD83C\uDFE5', size: 'lg', flex: 0 },
-              { type: 'box', layout: 'vertical', margin: 'sm', flex: 1,
-                contents: [
-                  { type: 'text', text: 'สาขา 3', weight: 'bold', color: '#1e3a8a', size: 'md' },
-                  { type: 'text', text: '08:00 \u2013 21:00 น.', size: 'xs', color: '#555' }
-                ]
-              },
-              { type: 'text', text: '\u276F', color: '#003d99', size: 'lg' }
-            ]
+            type: 'button',
+            action: { type: 'message', label: '\uD83C\uDFE5  สาขา 3  |  08:00 - 21:00 น.', text: action + '_branch_3' },
+            style: 'primary',
+            color: '#1d4ed8',
+            height: 'sm'
           }
         ]
       }
@@ -242,18 +194,10 @@ function createCheckInResult(name, time, lateMin, branchId) {
       header: {
         type: 'box', layout: 'vertical', paddingAll: '16px',
         backgroundColor: isLate ? '#b91c1c' : '#003d99',
-        contents: [{
-          type: 'box', layout: 'horizontal', alignItems: 'center', spacing: 'sm',
-          contents: [
-            { type: 'text', text: isLate ? '\u26A0\uFE0F' : '\u2705', size: 'xl' },
-            { type: 'box', layout: 'vertical',
-              contents: [
-                { type: 'text', text: 'บันทึกเข้างาน', weight: 'bold', color: '#ffffff', size: 'lg' },
-                { type: 'text', text: 'YD HR \u00B7 ' + branch.name, size: 'xs', color: '#ccddff' }
-              ]
-            }
-          ]
-        }]
+        contents: [
+          { type: 'text', text: (isLate ? '\u26A0\uFE0F' : '\u2705') + ' บันทึกเข้างาน', weight: 'bold', color: '#ffffff', size: 'lg' },
+          { type: 'text', text: 'YD HR \u00B7 ' + branch.name, size: 'xs', color: '#ccddff', margin: '4px' }
+        ]
       },
       body: {
         type: 'box', layout: 'vertical', paddingAll: '20px',
@@ -313,18 +257,10 @@ function createCheckOutResult(name, time, inTime, branchId) {
       header: {
         type: 'box', layout: 'vertical', paddingAll: '16px',
         backgroundColor: '#003d99',
-        contents: [{
-          type: 'box', layout: 'horizontal', alignItems: 'center', spacing: 'sm',
-          contents: [
-            { type: 'text', text: '\uD83D\uDEAA', size: 'xl' },
-            { type: 'box', layout: 'vertical',
-              contents: [
-                { type: 'text', text: 'บันทึกออกงาน', weight: 'bold', color: '#ffffff', size: 'lg' },
-                { type: 'text', text: 'YD HR \u00B7 ' + branch.name, size: 'xs', color: '#99bbff' }
-              ]
-            }
-          ]
-        }]
+        contents: [
+          { type: 'text', text: '\uD83D\uDEAA บันทึกออกงาน', weight: 'bold', color: '#ffffff', size: 'lg' },
+          { type: 'text', text: 'YD HR \u00B7 ' + branch.name, size: 'xs', color: '#99bbff', margin: '4px' }
+        ]
       },
       body: {
         type: 'box', layout: 'vertical', paddingAll: '20px',
@@ -350,9 +286,8 @@ function createCheckOutResult(name, time, inTime, branchId) {
                   { type: 'text', text: 'เข้างาน', size: 'xxs', color: '#888888', align: 'center' },
                   { type: 'text', text: inTime ? inTime + ' น.' : '-', size: 'md', weight: 'bold', align: 'center',
                     color: inLate > 0 ? '#b91c1c' : '#003d99' },
-                  inLate > 0
-                    ? { type: 'text', text: 'สาย ' + inLate + ' นาที', size: 'xxs', color: '#b91c1c', align: 'center', weight: 'bold' }
-                    : { type: 'text', text: 'ตรงเวลา', size: 'xxs', color: '#003d99', align: 'center' }
+                  { type: 'text', text: inLate > 0 ? 'สาย ' + inLate + ' นาที' : 'ตรงเวลา',
+                    size: 'xxs', color: inLate > 0 ? '#b91c1c' : '#003d99', align: 'center', weight: 'bold' }
                 ]
               },
               {
@@ -398,19 +333,17 @@ function createTodayHistory(name, logs) {
           contents: [
             { type: 'text', text: l.time + ' น.', size: 'md', weight: 'bold',
               color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#003d99' },
-            l.type === 'in'
-              ? (isLate
-                  ? { type: 'text', text: '\u26A0\uFE0F สาย ' + lateMin + ' นาที', size: 'xxs', color: '#b91c1c', weight: 'bold' }
-                  : { type: 'text', text: '\u2713 ตรงเวลา', size: 'xxs', color: '#003d99' })
-              : { type: 'text', text: '\u2014 ออกงาน', size: 'xxs', color: '#888888' }
+            { type: 'text', text: l.type === 'in' ? (isLate ? '\u26A0\uFE0F สาย ' + lateMin + ' นาที' : '\u2713 ตรงเวลา') : '\u2014 ออกงาน',
+              size: 'xxs', color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#888888',
+              weight: isLate ? 'bold' : 'regular' }
           ]
         }
       ]
     };
   });
 
-  const totalLateToday = logs.filter(function(l){ return l.type === 'in'; })
-    .reduce(function(s, l){ return s + calcLateMinutes(l.time, l.branch); }, 0);
+  const totalLate = logs.filter(function(l){ return l.type === 'in'; })
+    .reduce(function(s,l){ return s + calcLateMinutes(l.time, l.branch); }, 0);
 
   return {
     type: 'flex',
@@ -419,18 +352,10 @@ function createTodayHistory(name, logs) {
       type: 'bubble', size: 'kilo',
       header: {
         type: 'box', layout: 'vertical', paddingAll: '16px', backgroundColor: '#003d99',
-        contents: [{
-          type: 'box', layout: 'horizontal', alignItems: 'center', spacing: 'sm',
-          contents: [
-            { type: 'text', text: '\uD83D\uDCCB', size: 'xl' },
-            { type: 'box', layout: 'vertical',
-              contents: [
-                { type: 'text', text: 'ประวัติวันนี้', weight: 'bold', color: '#ffffff', size: 'lg' },
-                { type: 'text', text: name, size: 'xs', color: '#99bbff' }
-              ]
-            }
-          ]
-        }]
+        contents: [
+          { type: 'text', text: '\uD83D\uDCCB ประวัติวันนี้', weight: 'bold', color: '#ffffff', size: 'lg' },
+          { type: 'text', text: name, size: 'xs', color: '#99bbff', margin: '4px' }
+        ]
       },
       body: {
         type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px',
@@ -438,12 +363,12 @@ function createTodayHistory(name, logs) {
           { type: 'separator', margin: 'md', color: '#93c5fd' },
           {
             type: 'box', layout: 'horizontal', margin: 'md',
-            backgroundColor: totalLateToday > 0 ? '#fee2e2' : '#dbeafe',
+            backgroundColor: totalLate > 0 ? '#fee2e2' : '#dbeafe',
             cornerRadius: '8px', paddingAll: '10px',
             contents: [
-              { type: 'text', text: '\uD83D\uDD34 รวมสายวันนี้', size: 'xs', color: totalLateToday > 0 ? '#b91c1c' : '#003d99', flex: 1, weight: 'bold' },
-              { type: 'text', text: totalLateToday > 0 ? totalLateToday + ' นาที' : '0 นาที',
-                size: 'xs', weight: 'bold', align: 'end', color: totalLateToday > 0 ? '#b91c1c' : '#003d99' }
+              { type: 'text', text: '\uD83D\uDD34 รวมสายวันนี้', size: 'xs', color: totalLate > 0 ? '#b91c1c' : '#003d99', flex: 1, weight: 'bold' },
+              { type: 'text', text: totalLate + ' นาที', size: 'xs', weight: 'bold', align: 'end',
+                color: totalLate > 0 ? '#b91c1c' : '#003d99' }
             ]
           }
         ]) : [{ type: 'text', text: 'ยังไม่มีการลงเวลาวันนี้', color: '#aaaaaa', align: 'center', size: 'sm' }]
@@ -462,7 +387,7 @@ function createMonthlySummary(name, logs) {
   });
   const totalDays = monthLogs.length;
   const lateDays = monthLogs.filter(function(l){ return calcLateMinutes(l.time, l.branch) > 0; }).length;
-  const totalLateMin = monthLogs.reduce(function(s, l){ return s + calcLateMinutes(l.time, l.branch); }, 0);
+  const totalLateMin = monthLogs.reduce(function(s,l){ return s + calcLateMinutes(l.time, l.branch); }, 0);
   const onTimeDays = totalDays - lateDays;
   const monthName = now.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', month: 'long', year: 'numeric' });
 
@@ -477,32 +402,23 @@ function createMonthlySummary(name, logs) {
       contents: [
         { type: 'text', text: '\uD83C\uDFE5 ' + b.name, size: 'xs', color: '#1e3a8a', flex: 2, weight: 'bold' },
         { type: 'text', text: bLogs.length + ' วัน', size: 'xs', color: '#444444', flex: 1, align: 'center' },
-        { type: 'text', text: bLate > 0 ? 'สาย ' + bLate + ' วัน (' + bLateMin + ' น.)' : 'ตรงเวลา \u2713',
-          size: 'xs', flex: 3, align: 'end', color: bLate > 0 ? '#b91c1c' : '#003d99',
-          weight: bLate > 0 ? 'bold' : 'regular' }
+        { type: 'text', text: bLate > 0 ? 'สาย ' + bLateMin + ' น.' : 'ตรงเวลา',
+          size: 'xs', flex: 2, align: 'end', color: bLate > 0 ? '#b91c1c' : '#003d99', weight: 'bold' }
       ]
     };
   });
 
   return {
     type: 'flex',
-    altText: '\uD83D\uDCCA สรุปเดือนนี้ ' + name + ' สาย ' + totalLateMin + ' นาที',
+    altText: '\uD83D\uDCCA สรุปเดือนนี้ ' + name,
     contents: {
       type: 'bubble', size: 'kilo',
       header: {
         type: 'box', layout: 'vertical', paddingAll: '16px', backgroundColor: '#001f66',
-        contents: [{
-          type: 'box', layout: 'horizontal', alignItems: 'center', spacing: 'sm',
-          contents: [
-            { type: 'text', text: '\uD83D\uDCCA', size: 'xl' },
-            { type: 'box', layout: 'vertical',
-              contents: [
-                { type: 'text', text: 'สรุปเดือนนี้', weight: 'bold', color: '#ffffff', size: 'lg' },
-                { type: 'text', text: name + ' \u00B7 ' + monthName, size: 'xxs', color: '#99bbff', wrap: true }
-              ]
-            }
-          ]
-        }]
+        contents: [
+          { type: 'text', text: '\uD83D\uDCCA สรุปเดือนนี้', weight: 'bold', color: '#ffffff', size: 'lg' },
+          { type: 'text', text: name + ' \u00B7 ' + monthName, size: 'xxs', color: '#99bbff', margin: '4px', wrap: true }
+        ]
       },
       body: {
         type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm',
@@ -514,16 +430,14 @@ function createMonthlySummary(name, logs) {
                 backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '12px',
                 contents: [
                   { type: 'text', text: String(totalDays), size: '3xl', weight: 'bold', color: '#003d99', align: 'center' },
-                  { type: 'text', text: 'วัน', size: 'xxs', color: '#003d99', align: 'center' },
-                  { type: 'text', text: 'ทำงานทั้งหมด', size: 'xxs', color: '#888888', align: 'center', margin: 'sm' }
+                  { type: 'text', text: 'วันทำงาน', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
                 ]
               },
               { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center',
                 backgroundColor: '#dcfce7', cornerRadius: '12px', paddingAll: '12px',
                 contents: [
                   { type: 'text', text: String(onTimeDays), size: '3xl', weight: 'bold', color: '#166534', align: 'center' },
-                  { type: 'text', text: 'วัน', size: 'xxs', color: '#166534', align: 'center' },
-                  { type: 'text', text: 'มาตรงเวลา', size: 'xxs', color: '#888888', align: 'center', margin: 'sm' }
+                  { type: 'text', text: 'ตรงเวลา', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
                 ]
               }
             ]
@@ -535,21 +449,19 @@ function createMonthlySummary(name, logs) {
                 backgroundColor: '#fee2e2', cornerRadius: '12px', paddingAll: '12px',
                 contents: [
                   { type: 'text', text: String(lateDays), size: '3xl', weight: 'bold', color: '#b91c1c', align: 'center' },
-                  { type: 'text', text: 'วัน', size: 'xxs', color: '#b91c1c', align: 'center' },
-                  { type: 'text', text: 'มาสาย', size: 'xxs', color: '#888888', align: 'center', margin: 'sm' }
+                  { type: 'text', text: 'วันสาย', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
                 ]
               },
               { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center',
                 backgroundColor: '#fef2f2', cornerRadius: '12px', paddingAll: '12px',
                 contents: [
                   { type: 'text', text: String(totalLateMin), size: '3xl', weight: 'bold', color: '#b91c1c', align: 'center' },
-                  { type: 'text', text: 'นาที', size: 'xxs', color: '#b91c1c', align: 'center' },
-                  { type: 'text', text: 'รวมสายทั้งหมด', size: 'xxs', color: '#888888', align: 'center', margin: 'sm' }
+                  { type: 'text', text: 'นาทีรวมสาย', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
                 ]
               }
             ]
           },
-          { type: 'separator', color: '#93c5fd', margin: 'sm' },
+          { type: 'separator', color: '#93c5fd' },
           { type: 'text', text: 'แยกตามสาขา', size: 'xs', color: '#003d99', weight: 'bold', margin: 'sm' },
           ...branchRows,
           {
@@ -611,7 +523,7 @@ async function handleEvent(event) {
   if (text === 'เข้างาน') {
     if (lastLog && lastLog.type === 'in') {
       await client.replyMessage({ replyToken, messages: [{ type: 'text',
-        text: '\u26A0\uFE0F คุณลงเวลาเข้างานแล้ว\nเวลา ' + lastLog.time + ' น. (' + (BRANCHES[lastLog.branch] || {name:''}).name + ')\n\nหากต้องการออกงาน กด "ออกงาน"'
+        text: '\u26A0\uFE0F คุณลงเวลาเข้างานแล้ว\nเวลา ' + lastLog.time + ' น.\n\nหากต้องการออกงาน กด "ออกงาน"'
       }]});
       return;
     }
@@ -664,8 +576,7 @@ async function handleEvent(event) {
   }
 
   await client.replyMessage({ replyToken, messages: [
-    { type: 'text', text: 'สวัสดีครับ ' + userName + ' \uD83D\uDC4B\n\nพิมพ์ว่า "ยาดีเชียงใหม่" เพื่อเริ่มใช้งานระบบลงเวลาได้เลยครับ' },
-    createMainMenu(userName)
+    { type: 'text', text: 'สวัสดีครับ ' + userName + ' \uD83D\uDC4B\n\nพิมพ์ว่า "ยาดีเชียงใหม่" เพื่อเริ่มใช้งานระบบลงเวลาได้เลยครับ' }
   ]});
 }
 

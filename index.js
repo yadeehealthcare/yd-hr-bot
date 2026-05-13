@@ -12,13 +12,31 @@ const client = new line.messagingApi.MessagingApiClient({
   channelAccessToken: config.channelAccessToken,
 });
 
+// ═══════════════════════════════════════════
+// ข้อมูล 3 สาขา + พิกัด GPS
+// ═══════════════════════════════════════════
 const BRANCHES = {
-  '1': { name: 'สาขา 1', startH: 8, startM: 0, endH: 22, endM: 0, grace: 0 },
-  '2': { name: 'สาขา 2', startH: 8, startM: 0, endH: 20, endM: 0, grace: 0 },
-  '3': { name: 'สาขา 3', startH: 8, startM: 0, endH: 21, endM: 0, grace: 0 },
+  '1': { name: 'สาขา 1', startH: 8, startM: 0, endH: 22, endM: 0, grace: 0, lat: 18.77536449021555, lng: 99.06397534033722 },
+  '2': { name: 'สาขา 2', startH: 8, startM: 0, endH: 20, endM: 0, grace: 0, lat: 18.74173525488209, lng: 99.20807513931368 },
+  '3': { name: 'สาขา 3', startH: 8, startM: 0, endH: 21, endM: 0, grace: 0, lat: 18.72614815677626, lng: 98.91718330556888 },
 };
 
+const MAX_DISTANCE_METERS = 500;
+
 let attendanceData = {};
+
+// ═══════════════════════════════════════════
+// คำนวณระยะทาง GPS (Haversine formula)
+// ═══════════════════════════════════════════
+function calcDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
 
 function getTodayBKK() {
   return new Date().toLocaleDateString('th-TH', {
@@ -53,17 +71,16 @@ function getTodayLogs(userId) {
   return attendanceData[userId].logs.filter(l => l.date === today);
 }
 
+// ═══════════════════════════════════════════
 // เมนูหลัก
+// ═══════════════════════════════════════════
 function createMainMenu(name) {
   return {
-    type: 'flex',
-    altText: 'เมนู YD HR',
+    type: 'flex', altText: 'เมนู YD HR',
     contents: {
-      type: 'bubble',
-      size: 'kilo',
+      type: 'bubble', size: 'kilo',
       header: {
-        type: 'box', layout: 'vertical', paddingAll: '20px',
-        backgroundColor: '#003d99',
+        type: 'box', layout: 'vertical', paddingAll: '20px', backgroundColor: '#003d99',
         contents: [
           { type: 'text', text: 'YD HR', weight: 'bold', size: 'xl', color: '#ffffff' },
           { type: 'text', text: 'ระบบบันทึกเวลาทำงาน', size: 'xs', color: '#99bbff' },
@@ -73,15 +90,13 @@ function createMainMenu(name) {
         ]
       },
       body: {
-        type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px',
-        backgroundColor: '#f0f5ff',
+        type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', backgroundColor: '#f0f5ff',
         contents: [
           {
             type: 'box', layout: 'horizontal', spacing: 'sm',
             contents: [
               {
-                type: 'box', layout: 'vertical', flex: 1,
-                backgroundColor: '#003d99', cornerRadius: '12px',
+                type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#003d99', cornerRadius: '12px',
                 paddingAll: '14px', alignItems: 'center',
                 action: { type: 'message', label: 'เข้างาน', text: 'เข้างาน' },
                 contents: [
@@ -90,8 +105,7 @@ function createMainMenu(name) {
                 ]
               },
               {
-                type: 'box', layout: 'vertical', flex: 1,
-                backgroundColor: '#b91c1c', cornerRadius: '12px',
+                type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#b91c1c', cornerRadius: '12px',
                 paddingAll: '14px', alignItems: 'center',
                 action: { type: 'message', label: 'ออกงาน', text: 'ออกงาน' },
                 contents: [
@@ -105,8 +119,7 @@ function createMainMenu(name) {
             type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'sm',
             contents: [
               {
-                type: 'box', layout: 'vertical', flex: 1,
-                backgroundColor: '#dbeafe', cornerRadius: '12px',
+                type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#dbeafe', cornerRadius: '12px',
                 paddingAll: '12px', alignItems: 'center',
                 action: { type: 'message', label: 'ประวัติ', text: 'ประวัติวันนี้' },
                 contents: [
@@ -115,8 +128,7 @@ function createMainMenu(name) {
                 ]
               },
               {
-                type: 'box', layout: 'vertical', flex: 1,
-                backgroundColor: '#e0e7ff', cornerRadius: '12px',
+                type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#e0e7ff', cornerRadius: '12px',
                 paddingAll: '12px', alignItems: 'center',
                 action: { type: 'message', label: 'สรุป', text: 'สรุปเดือนนี้' },
                 contents: [
@@ -136,12 +148,60 @@ function createMainMenu(name) {
   };
 }
 
-// เลือกสาขา — ใช้ button แทน box ที่มี action เพื่อหลีกเลี่ยง color error
-function createBranchSelector(action) {
+// ═══════════════════════════════════════════
+// ขอ Location ก่อนเข้างาน/ออกงาน
+// ═══════════════════════════════════════════
+function createLocationRequest(action, branchId) {
+  const branch = BRANCHES[branchId];
   const isIn = action === 'in';
   return {
     type: 'flex',
-    altText: 'เลือกสาขา',
+    altText: 'กรุณาแชร์ Location เพื่อยืนยันตำแหน่ง',
+    contents: {
+      type: 'bubble', size: 'kilo',
+      header: {
+        type: 'box', layout: 'vertical', paddingAll: '16px',
+        backgroundColor: isIn ? '#003d99' : '#b91c1c',
+        contents: [
+          { type: 'text', text: '\uD83D\uDCCD ยืนยันตำแหน่ง', weight: 'bold', color: '#ffffff', size: 'lg' },
+          { type: 'text', text: 'YD HR \u00B7 ' + branch.name, size: 'xs', color: '#ccddff', margin: '4px' }
+        ]
+      },
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: '20px', spacing: 'md',
+        contents: [
+          {
+            type: 'box', layout: 'vertical', backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '16px',
+            contents: [
+              { type: 'text', text: '\uD83D\uDCCD ต้องยืนยันตำแหน่ง', weight: 'bold', color: '#003d99', size: 'md', align: 'center' },
+              { type: 'text', text: 'ต้องอยู่ในรัศมี 500 เมตร\nจาก' + branch.name + 'เท่านั้น', size: 'sm', color: '#1e40af', align: 'center', wrap: true, margin: 'sm' }
+            ]
+          },
+          { type: 'text', text: 'วิธีแชร์ Location:', size: 'sm', color: '#003d99', weight: 'bold' },
+          { type: 'text', text: '1. กดปุ่ม + ในช่องแชท\n2. เลือก "Location"\n3. กด "Send your current location"', size: 'sm', color: '#444444', wrap: true, margin: 'sm' },
+          {
+            type: 'box', layout: 'vertical', backgroundColor: '#fee2e2', cornerRadius: '10px', paddingAll: '12px',
+            contents: [
+              { type: 'text', text: '\u26A0\uFE0F หากไม่ได้อยู่ที่สาขา\nระบบจะไม่บันทึกเวลาให้ครับ', size: 'xs', color: '#b91c1c', align: 'center', wrap: true }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: 'box', layout: 'vertical', paddingAll: '10px', backgroundColor: '#f0f5ff',
+        contents: [{ type: 'text', text: 'YADEE HEALTHCARE \u00B7 YD HR System', size: 'xxs', color: '#7799cc', align: 'center' }]
+      }
+    }
+  };
+}
+
+// ═══════════════════════════════════════════
+// เลือกสาขา
+// ═══════════════════════════════════════════
+function createBranchSelector(action) {
+  const isIn = action === 'in';
+  return {
+    type: 'flex', altText: 'เลือกสาขา',
     contents: {
       type: 'bubble', size: 'kilo',
       header: {
@@ -149,7 +209,7 @@ function createBranchSelector(action) {
         backgroundColor: isIn ? '#003d99' : '#b91c1c',
         contents: [
           { type: 'text', text: (isIn ? '\u2705 เข้างาน' : '\uD83D\uDEAA ออกงาน') + ' \u2014 เลือกสาขา', weight: 'bold', color: '#ffffff', size: 'md' },
-          { type: 'text', text: 'กรุณาเลือกสาขาที่ทำงานวันนี้', size: 'xs', color: '#ccddff', margin: '4px' }
+          { type: 'text', text: 'ระบบจะตรวจสอบ GPS ในรัศมี 500 เมตร', size: 'xs', color: '#ccddff', margin: '4px' }
         ]
       },
       body: {
@@ -158,23 +218,23 @@ function createBranchSelector(action) {
           {
             type: 'button',
             action: { type: 'message', label: '\uD83C\uDFE5  สาขา 1  |  08:00 - 22:00 น.', text: action + '_branch_1' },
-            style: 'primary',
-            color: '#003d99',
-            height: 'sm'
+            style: 'primary', color: '#003d99', height: 'sm'
           },
           {
             type: 'button',
             action: { type: 'message', label: '\uD83C\uDFE5  สาขา 2  |  08:00 - 20:00 น.', text: action + '_branch_2' },
-            style: 'primary',
-            color: '#0057cc',
-            height: 'sm'
+            style: 'primary', color: '#0057cc', height: 'sm'
           },
           {
             type: 'button',
             action: { type: 'message', label: '\uD83C\uDFE5  สาขา 3  |  08:00 - 21:00 น.', text: action + '_branch_3' },
-            style: 'primary',
-            color: '#1d4ed8',
-            height: 'sm'
+            style: 'primary', color: '#1d4ed8', height: 'sm'
+          },
+          {
+            type: 'box', layout: 'vertical', backgroundColor: '#dbeafe', cornerRadius: '10px', paddingAll: '10px', margin: 'sm',
+            contents: [
+              { type: 'text', text: '\uD83D\uDCCD หลังเลือกสาขา ระบบจะขอให้แชร์ Location\nเพื่อยืนยันว่าอยู่ที่สาขานั้นจริงครับ', size: 'xs', color: '#1e40af', wrap: true, align: 'center' }
+            ]
           }
         ]
       }
@@ -182,8 +242,10 @@ function createBranchSelector(action) {
   };
 }
 
+// ═══════════════════════════════════════════
 // ผลเข้างาน
-function createCheckInResult(name, time, lateMin, branchId) {
+// ═══════════════════════════════════════════
+function createCheckInResult(name, time, lateMin, branchId, distMeters) {
   const isLate = lateMin > 0;
   const branch = BRANCHES[branchId];
   return {
@@ -206,12 +268,10 @@ function createCheckInResult(name, time, lateMin, branchId) {
           { type: 'text', text: getDateLabelBKK(), size: 'xxs', color: '#999999', align: 'center', margin: 'sm', wrap: true },
           {
             type: 'box', layout: 'vertical', margin: 'lg',
-            backgroundColor: isLate ? '#fee2e2' : '#dbeafe',
-            cornerRadius: '12px', paddingAll: '16px',
+            backgroundColor: isLate ? '#fee2e2' : '#dbeafe', cornerRadius: '12px', paddingAll: '16px',
             contents: [
               { type: 'text', text: 'เวลาเข้างาน', size: 'xs', color: '#888888', align: 'center' },
-              { type: 'text', text: time + ' น.', size: '4xl', weight: 'bold', align: 'center', margin: 'sm',
-                color: isLate ? '#b91c1c' : '#003d99' }
+              { type: 'text', text: time + ' น.', size: '4xl', weight: 'bold', align: 'center', margin: 'sm', color: isLate ? '#b91c1c' : '#003d99' }
             ]
           },
           isLate ? {
@@ -219,7 +279,8 @@ function createCheckInResult(name, time, lateMin, branchId) {
             backgroundColor: '#fee2e2', cornerRadius: '12px', paddingAll: '16px',
             contents: [
               { type: 'text', text: '\u26A0\uFE0F มาสาย', size: 'sm', color: '#b91c1c', align: 'center', weight: 'bold' },
-              { type: 'text', text: String(lateMin) + ' นาที', size: '5xl', weight: 'bold', color: '#b91c1c', align: 'center' },
+              { type: 'text', text: String(lateMin), size: '5xl', weight: 'bold', color: '#b91c1c', align: 'center' },
+              { type: 'text', text: 'นาที', size: 'xl', weight: 'bold', color: '#b91c1c', align: 'center', margin: 'xs' },
               { type: 'text', text: 'สายจากเวลา 08:00 น.', size: 'xxs', color: '#dc2626', align: 'center', margin: 'sm' }
             ]
           } : {
@@ -228,6 +289,14 @@ function createCheckInResult(name, time, lateMin, branchId) {
             contents: [
               { type: 'text', text: '\uD83C\uDF89 มาตรงเวลา', size: 'lg', weight: 'bold', color: '#003d99', align: 'center' },
               { type: 'text', text: 'ขอบคุณที่มาตรงเวลานะครับ', size: 'xs', color: '#1d4ed8', align: 'center', margin: 'sm' }
+            ]
+          },
+          {
+            type: 'box', layout: 'horizontal', margin: 'md', alignItems: 'center',
+            backgroundColor: '#dcfce7', cornerRadius: '8px', paddingAll: '8px',
+            contents: [
+              { type: 'text', text: '\uD83D\uDCCD ยืนยัน GPS', size: 'xs', color: '#166534', flex: 1, weight: 'bold' },
+              { type: 'text', text: Math.round(distMeters) + ' ม. จากสาขา', size: 'xs', color: '#166534', align: 'end' }
             ]
           }
         ]
@@ -245,8 +314,10 @@ function createCheckInResult(name, time, lateMin, branchId) {
   };
 }
 
+// ═══════════════════════════════════════════
 // ผลออกงาน
-function createCheckOutResult(name, time, inTime, branchId) {
+// ═══════════════════════════════════════════
+function createCheckOutResult(name, time, inTime, branchId, distMeters) {
   const branch = BRANCHES[branchId];
   const inLate = inTime ? calcLateMinutes(inTime, branchId) : 0;
   return {
@@ -255,8 +326,7 @@ function createCheckOutResult(name, time, inTime, branchId) {
     contents: {
       type: 'bubble', size: 'kilo',
       header: {
-        type: 'box', layout: 'vertical', paddingAll: '16px',
-        backgroundColor: '#003d99',
+        type: 'box', layout: 'vertical', paddingAll: '16px', backgroundColor: '#003d99',
         contents: [
           { type: 'text', text: '\uD83D\uDEAA บันทึกออกงาน', weight: 'bold', color: '#ffffff', size: 'lg' },
           { type: 'text', text: 'YD HR \u00B7 ' + branch.name, size: 'xs', color: '#99bbff', margin: '4px' }
@@ -276,18 +346,15 @@ function createCheckOutResult(name, time, inTime, branchId) {
             ]
           },
           {
-            type: 'box', layout: 'horizontal', margin: 'lg', spacing: 'md',
+            type: 'box', layout: 'horizontal', margin: 'md', spacing: 'md',
             contents: [
               {
                 type: 'box', layout: 'vertical', flex: 1, alignItems: 'center',
-                backgroundColor: inLate > 0 ? '#fee2e2' : '#dbeafe',
-                cornerRadius: '10px', paddingAll: '10px',
+                backgroundColor: inLate > 0 ? '#fee2e2' : '#dbeafe', cornerRadius: '10px', paddingAll: '10px',
                 contents: [
                   { type: 'text', text: 'เข้างาน', size: 'xxs', color: '#888888', align: 'center' },
-                  { type: 'text', text: inTime ? inTime + ' น.' : '-', size: 'md', weight: 'bold', align: 'center',
-                    color: inLate > 0 ? '#b91c1c' : '#003d99' },
-                  { type: 'text', text: inLate > 0 ? 'สาย ' + inLate + ' นาที' : 'ตรงเวลา',
-                    size: 'xxs', color: inLate > 0 ? '#b91c1c' : '#003d99', align: 'center', weight: 'bold' }
+                  { type: 'text', text: inTime ? inTime + ' น.' : '-', size: 'md', weight: 'bold', align: 'center', color: inLate > 0 ? '#b91c1c' : '#003d99' },
+                  { type: 'text', text: inLate > 0 ? 'สาย ' + inLate + ' นาที' : 'ตรงเวลา', size: 'xxs', color: inLate > 0 ? '#b91c1c' : '#003d99', align: 'center', weight: 'bold' }
                 ]
               },
               {
@@ -300,6 +367,14 @@ function createCheckOutResult(name, time, inTime, branchId) {
                 ]
               }
             ]
+          },
+          {
+            type: 'box', layout: 'horizontal', margin: 'sm', alignItems: 'center',
+            backgroundColor: '#dcfce7', cornerRadius: '8px', paddingAll: '8px',
+            contents: [
+              { type: 'text', text: '\uD83D\uDCCD ยืนยัน GPS', size: 'xs', color: '#166534', flex: 1, weight: 'bold' },
+              { type: 'text', text: Math.round(distMeters) + ' ม. จากสาขา', size: 'xs', color: '#166534', align: 'end' }
+            ]
           }
         ]
       },
@@ -311,7 +386,52 @@ function createCheckOutResult(name, time, inTime, branchId) {
   };
 }
 
+// ═══════════════════════════════════════════
+// ปฏิเสธเพราะ GPS ไกลเกิน
+// ═══════════════════════════════════════════
+function createLocationRejected(branchId, distMeters) {
+  const branch = BRANCHES[branchId];
+  return {
+    type: 'flex', altText: '\u274C ไม่สามารถลงเวลาได้ อยู่ไกลจากสาขา',
+    contents: {
+      type: 'bubble', size: 'kilo',
+      header: {
+        type: 'box', layout: 'vertical', paddingAll: '16px', backgroundColor: '#7f1d1d',
+        contents: [
+          { type: 'text', text: '\u274C ไม่สามารถลงเวลาได้', weight: 'bold', color: '#ffffff', size: 'lg' },
+          { type: 'text', text: 'YD HR \u00B7 ตรวจสอบ GPS', size: 'xs', color: '#fca5a5', margin: '4px' }
+        ]
+      },
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: '20px', spacing: 'md',
+        contents: [
+          {
+            type: 'box', layout: 'vertical', backgroundColor: '#fee2e2', cornerRadius: '12px', paddingAll: '16px',
+            contents: [
+              { type: 'text', text: '\uD83D\uDCCD คุณอยู่ห่างจาก ' + branch.name, size: 'sm', color: '#b91c1c', align: 'center', weight: 'bold' },
+              { type: 'text', text: String(Math.round(distMeters)) + ' เมตร', size: '4xl', weight: 'bold', color: '#b91c1c', align: 'center' },
+              { type: 'text', text: 'เกินรัศมี 500 เมตรที่กำหนด', size: 'xs', color: '#dc2626', align: 'center', margin: 'sm' }
+            ]
+          },
+          {
+            type: 'box', layout: 'vertical', backgroundColor: '#fef9c3', cornerRadius: '10px', paddingAll: '12px',
+            contents: [
+              { type: 'text', text: '\uD83D\uDCA1 ต้องอยู่ในรัศมี 500 เมตร\nจาก' + branch.name + 'เท่านั้น\nกรุณาลองใหม่เมื่ออยู่ที่สาขาครับ', size: 'sm', color: '#854d0e', wrap: true, align: 'center' }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: 'box', layout: 'vertical', paddingAll: '10px', backgroundColor: '#fee2e2',
+        contents: [{ type: 'text', text: '\uD83D\uDEAB ไม่บันทึกเวลา', size: 'xs', color: '#b91c1c', align: 'center', weight: 'bold' }]
+      }
+    }
+  };
+}
+
+// ═══════════════════════════════════════════
 // ประวัติวันนี้
+// ═══════════════════════════════════════════
 function createTodayHistory(name, logs) {
   const rows = logs.map(function(l) {
     const lateMin = l.type === 'in' ? calcLateMinutes(l.time, l.branch) : 0;
@@ -324,18 +444,15 @@ function createTodayHistory(name, logs) {
       contents: [
         { type: 'box', layout: 'vertical', flex: 1,
           contents: [
-            { type: 'text', text: l.type === 'in' ? '\u2705 เข้างาน' : '\uD83D\uDEAA ออกงาน',
-              size: 'sm', weight: 'bold', color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#003d99' },
+            { type: 'text', text: l.type === 'in' ? '\u2705 เข้างาน' : '\uD83D\uDEAA ออกงาน', size: 'sm', weight: 'bold', color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#003d99' },
             { type: 'text', text: '\uD83C\uDFE5 ' + branch.name, size: 'xxs', color: '#666666' }
           ]
         },
         { type: 'box', layout: 'vertical', alignItems: 'flex-end',
           contents: [
-            { type: 'text', text: l.time + ' น.', size: 'md', weight: 'bold',
-              color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#003d99' },
+            { type: 'text', text: l.time + ' น.', size: 'md', weight: 'bold', color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#003d99' },
             { type: 'text', text: l.type === 'in' ? (isLate ? '\u26A0\uFE0F สาย ' + lateMin + ' นาที' : '\u2713 ตรงเวลา') : '\u2014 ออกงาน',
-              size: 'xxs', color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#888888',
-              weight: isLate ? 'bold' : 'regular' }
+              size: 'xxs', color: l.type === 'in' ? (isLate ? '#b91c1c' : '#003d99') : '#888888', weight: isLate ? 'bold' : 'regular' }
           ]
         }
       ]
@@ -346,8 +463,7 @@ function createTodayHistory(name, logs) {
     .reduce(function(s,l){ return s + calcLateMinutes(l.time, l.branch); }, 0);
 
   return {
-    type: 'flex',
-    altText: '\uD83D\uDCCB ประวัติวันนี้ของ ' + name,
+    type: 'flex', altText: '\uD83D\uDCCB ประวัติวันนี้ของ ' + name,
     contents: {
       type: 'bubble', size: 'kilo',
       header: {
@@ -363,12 +479,10 @@ function createTodayHistory(name, logs) {
           { type: 'separator', margin: 'md', color: '#93c5fd' },
           {
             type: 'box', layout: 'horizontal', margin: 'md',
-            backgroundColor: totalLate > 0 ? '#fee2e2' : '#dbeafe',
-            cornerRadius: '8px', paddingAll: '10px',
+            backgroundColor: totalLate > 0 ? '#fee2e2' : '#dbeafe', cornerRadius: '8px', paddingAll: '10px',
             contents: [
               { type: 'text', text: '\uD83D\uDD34 รวมสายวันนี้', size: 'xs', color: totalLate > 0 ? '#b91c1c' : '#003d99', flex: 1, weight: 'bold' },
-              { type: 'text', text: totalLate + ' นาที', size: 'xs', weight: 'bold', align: 'end',
-                color: totalLate > 0 ? '#b91c1c' : '#003d99' }
+              { type: 'text', text: totalLate + ' นาที', size: 'xs', weight: 'bold', align: 'end', color: totalLate > 0 ? '#b91c1c' : '#003d99' }
             ]
           }
         ]) : [{ type: 'text', text: 'ยังไม่มีการลงเวลาวันนี้', color: '#aaaaaa', align: 'center', size: 'sm' }]
@@ -377,7 +491,9 @@ function createTodayHistory(name, logs) {
   };
 }
 
+// ═══════════════════════════════════════════
 // สรุปเดือนนี้
+// ═══════════════════════════════════════════
 function createMonthlySummary(name, logs) {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -402,15 +518,13 @@ function createMonthlySummary(name, logs) {
       contents: [
         { type: 'text', text: '\uD83C\uDFE5 ' + b.name, size: 'xs', color: '#1e3a8a', flex: 2, weight: 'bold' },
         { type: 'text', text: bLogs.length + ' วัน', size: 'xs', color: '#444444', flex: 1, align: 'center' },
-        { type: 'text', text: bLate > 0 ? 'สาย ' + bLateMin + ' น.' : 'ตรงเวลา',
-          size: 'xs', flex: 2, align: 'end', color: bLate > 0 ? '#b91c1c' : '#003d99', weight: 'bold' }
+        { type: 'text', text: bLate > 0 ? 'สาย ' + bLateMin + ' น.' : 'ตรงเวลา', size: 'xs', flex: 2, align: 'end', color: bLate > 0 ? '#b91c1c' : '#003d99', weight: 'bold' }
       ]
     };
   });
 
   return {
-    type: 'flex',
-    altText: '\uD83D\uDCCA สรุปเดือนนี้ ' + name,
+    type: 'flex', altText: '\uD83D\uDCCA สรุปเดือนนี้ ' + name,
     contents: {
       type: 'bubble', size: 'kilo',
       header: {
@@ -426,39 +540,19 @@ function createMonthlySummary(name, logs) {
           {
             type: 'box', layout: 'horizontal', spacing: 'sm',
             contents: [
-              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center',
-                backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '12px',
-                contents: [
-                  { type: 'text', text: String(totalDays), size: '3xl', weight: 'bold', color: '#003d99', align: 'center' },
-                  { type: 'text', text: 'วันทำงาน', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
-                ]
-              },
-              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center',
-                backgroundColor: '#dcfce7', cornerRadius: '12px', paddingAll: '12px',
-                contents: [
-                  { type: 'text', text: String(onTimeDays), size: '3xl', weight: 'bold', color: '#166534', align: 'center' },
-                  { type: 'text', text: 'ตรงเวลา', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
-                ]
-              }
+              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '12px',
+                contents: [{ type: 'text', text: String(totalDays), size: '3xl', weight: 'bold', color: '#003d99', align: 'center' }, { type: 'text', text: 'วันทำงาน', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }] },
+              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', backgroundColor: '#dcfce7', cornerRadius: '12px', paddingAll: '12px',
+                contents: [{ type: 'text', text: String(onTimeDays), size: '3xl', weight: 'bold', color: '#166534', align: 'center' }, { type: 'text', text: 'ตรงเวลา', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }] }
             ]
           },
           {
             type: 'box', layout: 'horizontal', spacing: 'sm',
             contents: [
-              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center',
-                backgroundColor: '#fee2e2', cornerRadius: '12px', paddingAll: '12px',
-                contents: [
-                  { type: 'text', text: String(lateDays), size: '3xl', weight: 'bold', color: '#b91c1c', align: 'center' },
-                  { type: 'text', text: 'วันสาย', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
-                ]
-              },
-              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center',
-                backgroundColor: '#fef2f2', cornerRadius: '12px', paddingAll: '12px',
-                contents: [
-                  { type: 'text', text: String(totalLateMin), size: '3xl', weight: 'bold', color: '#b91c1c', align: 'center' },
-                  { type: 'text', text: 'นาทีรวมสาย', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }
-                ]
-              }
+              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', backgroundColor: '#fee2e2', cornerRadius: '12px', paddingAll: '12px',
+                contents: [{ type: 'text', text: String(lateDays), size: '3xl', weight: 'bold', color: '#b91c1c', align: 'center' }, { type: 'text', text: 'วันสาย', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }] },
+              { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', backgroundColor: '#fef2f2', cornerRadius: '12px', paddingAll: '12px',
+                contents: [{ type: 'text', text: String(totalLateMin), size: '3xl', weight: 'bold', color: '#b91c1c', align: 'center' }, { type: 'text', text: 'นาทีรวมสาย', size: 'xxs', color: '#555555', align: 'center', margin: 'sm' }] }
             ]
           },
           { type: 'separator', color: '#93c5fd' },
@@ -466,8 +560,7 @@ function createMonthlySummary(name, logs) {
           ...branchRows,
           {
             type: 'box', layout: 'horizontal', margin: 'sm',
-            backgroundColor: totalLateMin > 0 ? '#fee2e2' : '#dbeafe',
-            cornerRadius: '10px', paddingAll: '10px',
+            backgroundColor: totalLateMin > 0 ? '#fee2e2' : '#dbeafe', cornerRadius: '10px', paddingAll: '10px',
             contents: [
               { type: 'text', text: '\uD83D\uDD34 รวมสายเดือนนี้', size: 'sm', color: '#b91c1c', flex: 1, weight: 'bold' },
               { type: 'text', text: totalLateMin + ' นาที', size: 'sm', color: '#b91c1c', align: 'end', weight: 'bold' }
@@ -483,7 +576,9 @@ function createMonthlySummary(name, logs) {
   };
 }
 
+// ═══════════════════════════════════════════
 // Webhook
+// ═══════════════════════════════════════════
 app.post('/webhook', line.middleware(config), async (req, res) => {
   res.status(200).end();
   for (const event of req.body.events) {
@@ -492,11 +587,53 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
 });
 
 async function handleEvent(event) {
+  const replyToken = event.replyToken;
+
+  // รับ Location message
+  if (event.type === 'message' && event.message.type === 'location') {
+    const userId = event.source.userId;
+    const userLat = event.message.latitude;
+    const userLng = event.message.longitude;
+
+    if (!attendanceData[userId] || !attendanceData[userId].pendingAction) {
+      await client.replyMessage({ replyToken, messages: [{ type: 'text', text: 'กรุณากด "เข้างาน" หรือ "ออกงาน" ก่อนแชร์ตำแหน่งครับ' }] });
+      return;
+    }
+
+    const { action, branchId } = attendanceData[userId].pendingAction;
+    const branch = BRANCHES[branchId];
+    const distance = calcDistance(userLat, userLng, branch.lat, branch.lng);
+
+    let userName = attendanceData[userId].name || 'พนักงาน';
+
+    if (distance > MAX_DISTANCE_METERS) {
+      attendanceData[userId].pendingAction = null;
+      await client.replyMessage({ replyToken, messages: [createLocationRejected(branchId, distance)] });
+      return;
+    }
+
+    const today = getTodayBKK();
+    const now = getTimeBKK();
+    const todayLogs = getTodayLogs(userId);
+
+    if (action === 'in') {
+      const lateMin = calcLateMinutes(now, branchId);
+      attendanceData[userId].logs.push({ type: 'in', time: now, date: today, branch: branchId, dist: Math.round(distance) });
+      attendanceData[userId].pendingAction = null;
+      await client.replyMessage({ replyToken, messages: [createCheckInResult(userName, now, lateMin, branchId, distance)] });
+    } else {
+      const inLog = todayLogs.find(function(l){ return l.type === 'in'; });
+      attendanceData[userId].logs.push({ type: 'out', time: now, date: today, branch: branchId, dist: Math.round(distance) });
+      attendanceData[userId].pendingAction = null;
+      await client.replyMessage({ replyToken, messages: [createCheckOutResult(userName, now, inLog ? inLog.time : null, branchId, distance)] });
+    }
+    return;
+  }
+
   if (event.type !== 'message' || event.message.type !== 'text') return;
 
   const userId = event.source.userId;
   const text = event.message.text.trim();
-  const replyToken = event.replyToken;
 
   let userName = 'พนักงาน';
   try {
@@ -505,26 +642,23 @@ async function handleEvent(event) {
   } catch (e) {}
 
   if (!attendanceData[userId]) {
-    attendanceData[userId] = { name: userName, logs: [] };
+    attendanceData[userId] = { name: userName, logs: [], pendingAction: null };
   } else {
     attendanceData[userId].name = userName;
   }
 
-  const today = getTodayBKK();
-  const now = getTimeBKK();
   const todayLogs = getTodayLogs(userId);
   const lastLog = todayLogs[todayLogs.length - 1];
 
   if (['เมนู', 'menu', 'hr', 'HR', 'ยาดีเชียงใหม่', 'yadee'].includes(text)) {
+    attendanceData[userId].pendingAction = null;
     await client.replyMessage({ replyToken, messages: [createMainMenu(userName)] });
     return;
   }
 
   if (text === 'เข้างาน') {
     if (lastLog && lastLog.type === 'in') {
-      await client.replyMessage({ replyToken, messages: [{ type: 'text',
-        text: '\u26A0\uFE0F คุณลงเวลาเข้างานแล้ว\nเวลา ' + lastLog.time + ' น.\n\nหากต้องการออกงาน กด "ออกงาน"'
-      }]});
+      await client.replyMessage({ replyToken, messages: [{ type: 'text', text: '\u26A0\uFE0F คุณลงเวลาเข้างานแล้ว\nเวลา ' + lastLog.time + ' น.\n\nหากต้องการออกงาน กด "ออกงาน"' }] });
       return;
     }
     await client.replyMessage({ replyToken, messages: [createBranchSelector('in')] });
@@ -553,15 +687,24 @@ async function handleEvent(event) {
       await client.replyMessage({ replyToken, messages: [{ type: 'text', text: 'ไม่พบสาขาที่เลือกครับ' }] });
       return;
     }
-    if (action === 'in') {
-      const lateMin = calcLateMinutes(now, branchId);
-      attendanceData[userId].logs.push({ type: 'in', time: now, date: today, branch: branchId });
-      await client.replyMessage({ replyToken, messages: [createCheckInResult(userName, now, lateMin, branchId)] });
-    } else {
-      const inLog = todayLogs.find(function(l){ return l.type === 'in'; });
-      attendanceData[userId].logs.push({ type: 'out', time: now, date: today, branch: branchId });
-      await client.replyMessage({ replyToken, messages: [createCheckOutResult(userName, now, inLog ? inLog.time : null, branchId)] });
-    }
+    attendanceData[userId].pendingAction = { action, branchId };
+    await client.replyMessage({ replyToken, messages: [
+      createLocationRequest(action, branchId),
+      {
+        type: 'flex', altText: 'แชร์ Location',
+        contents: {
+          type: 'bubble', size: 'kilo',
+          body: {
+            type: 'box', layout: 'vertical', paddingAll: '16px',
+            contents: [{
+              type: 'button',
+              action: { type: 'location', label: '\uD83D\uDCCD แชร์ตำแหน่งของฉัน' },
+              style: 'primary', color: '#003d99'
+            }]
+          }
+        }
+      }
+    ]});
     return;
   }
 

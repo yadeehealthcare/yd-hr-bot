@@ -688,19 +688,43 @@ async function handleEvent(event) {
       return;
     }
     attendanceData[userId].pendingAction = { action, branchId };
+    const branch = BRANCHES[branchId];
+    const isIn = action === 'in';
     await client.replyMessage({ replyToken, messages: [
-      createLocationRequest(action, branchId),
       {
-        type: 'flex', altText: 'แชร์ Location',
+        type: 'flex', altText: '\uD83D\uDCCD กรุณาแชร์ตำแหน่งเพื่อยืนยัน ' + branch.name,
         contents: {
           type: 'bubble', size: 'kilo',
-          body: {
+          header: {
             type: 'box', layout: 'vertical', paddingAll: '16px',
-            contents: [{
-              type: 'button',
-              action: { type: 'location', label: '\uD83D\uDCCD แชร์ตำแหน่งของฉัน' },
-              style: 'primary', color: '#003d99'
-            }]
+            backgroundColor: isIn ? '#003d99' : '#b91c1c',
+            contents: [
+              { type: 'text', text: '\uD83D\uDCCD ยืนยันตำแหน่ง', weight: 'bold', color: '#ffffff', size: 'lg' },
+              { type: 'text', text: 'YD HR \u00B7 ' + branch.name, size: 'xs', color: '#ccddff', margin: '4px' }
+            ]
+          },
+          body: {
+            type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'md',
+            contents: [
+              {
+                type: 'box', layout: 'vertical', backgroundColor: '#dbeafe', cornerRadius: '12px', paddingAll: '14px',
+                contents: [
+                  { type: 'text', text: '\uD83D\uDCCD ต้องอยู่ในรัศมี 500 เมตร', weight: 'bold', color: '#003d99', size: 'sm', align: 'center' },
+                  { type: 'text', text: 'จาก ' + branch.name + ' เท่านั้น', size: 'xs', color: '#1e40af', align: 'center', margin: 'xs' }
+                ]
+              },
+              {
+                type: 'button',
+                action: { type: 'location', label: '\uD83D\uDCCD กดที่นี่เพื่อแชร์ตำแหน่ง' },
+                style: 'primary', color: '#003d99', height: 'sm'
+              },
+              {
+                type: 'box', layout: 'vertical', backgroundColor: '#fee2e2', cornerRadius: '8px', paddingAll: '10px',
+                contents: [
+                  { type: 'text', text: '\u26A0\uFE0F หากไม่ได้อยู่ที่สาขาจริง\nระบบจะไม่บันทึกเวลาให้ครับ', size: 'xs', color: '#b91c1c', align: 'center', wrap: true }
+                ]
+              }
+            ]
           }
         }
       }
